@@ -91,7 +91,9 @@ def handle_menu_choice(text, phoneNumber, connection_attributes):
         if current_choice == '1' and len(steps) == 1:
             return "CON Enter Your Registered Mobile Number."
         elif previous_choice(steps, 1) == '1' and len(steps) == 2:
-            registered_mobile = current_choice
+            registered_mobile = format_phone_number(current_choice)
+            if not validate_phone_number(registered_mobile):
+                return "END Invalid registered mobile number. It should be 9 digits long."
             angaza_id = fetch_angaza_id_from_phone(registered_mobile, connection_attributes)
             options = get_options_from_api(angaza_id)
             options_message = "CON Choose an option:\n" + "\n".join(f"{i+1}. {option}" for i, option in enumerate(options))
@@ -102,7 +104,11 @@ def handle_menu_choice(text, phoneNumber, connection_attributes):
             return "CON Enter alternate phone number"
         elif previous_choice(steps, 4) == '1' and previous_choice(steps, 1) == '1':
             alternate_mobile = current_choice
-            registered_mobile = previous_choice(steps, 3)
+            if not validate_alternate_phone_number(alternate_mobile):
+                return "END Invalid alternate mobile number. It should be 9 digits long."
+            registered_mobile = format_phone_number(previous_choice(steps, 3))
+            if not validate_phone_number(registered_mobile):
+                return "END Invalid registered mobile number. It should be 9 digits long."
             angaza_id = fetch_angaza_id_from_phone(registered_mobile, connection_attributes)
             options = get_options_from_api(angaza_id)
             selected_option = options[int(previous_choice(steps, 2)) - 1]
@@ -112,7 +118,9 @@ def handle_menu_choice(text, phoneNumber, connection_attributes):
             else:
                 return "END Failed to process emergency request."
         elif current_choice == '2' and previous_choice(steps, 3) == '1':
-            registered_mobile = previous_choice(steps, 2)
+            registered_mobile = format_phone_number(previous_choice(steps, 2))
+            if not validate_phone_number(registered_mobile):
+                return "END Invalid registered mobile number. It should be 9 digits long."
             angaza_id = fetch_angaza_id_from_phone(registered_mobile, connection_attributes)
             options = get_options_from_api(angaza_id)
             selected_option = options[int(previous_choice(steps, 1)) - 1]
@@ -126,6 +134,17 @@ def handle_menu_choice(text, phoneNumber, connection_attributes):
     except Exception as e:
         logger.error("Error in handle_menu_choice: %s", str(e))
         return "END An error occurred while processing your request. Please try again later."
+
+def format_phone_number(phone_number):
+    if not phone_number.startswith('+254'):
+        return '+254' + phone_number[-9:]
+    return phone_number
+
+def validate_phone_number(phone_number):
+    return len(phone_number) == 13 and phone_number.startswith('+254')
+
+def validate_alternate_phone_number(phone_number):
+    return len(phone_number) == 9
 
 def test_vault_lambda_handler(event, context):
     set_secret()
